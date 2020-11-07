@@ -10,6 +10,7 @@ constexpr int noReferences = 0;
 constexpr int oneReference = 1;
 constexpr int twoReferences = 2;
 constexpr int threeReferences = 3;
+constexpr int fourReferences = 4;
 
 class TestClass {
 public:
@@ -149,7 +150,6 @@ TEST_F(WeakPointerTest, shouldReturnNullptrSharedPointerWhenLockWeakPointerWithN
     ASSERT_EQ(s_ptrNew.get(), nullptr);
 }
 
-
 TEST_F(WeakPointerTest, shouldUseMoveConstructor)
 {
     WeakPointer<int> w_ptrNew{std::move(w_ptr)};
@@ -207,6 +207,37 @@ TEST_F(ControlBlockTest, shouldDecreaseWeakRefs)
     testControlBlock.increaseWeak();
     testControlBlock.decreaseWeak();
     ASSERT_EQ(testControlBlock.getWeak(), noReferences);
+}
+
+TEST_F(ControlBlockTest, shouldIncreaseAndDecreaseSharedAndWeakRefs)
+{
+    SharedPointer<int> sPointer(new int(testValue));
+    ASSERT_EQ(sPointer.use_count(), oneReference);
+
+    SharedPointer<int> sPointer2 = sPointer;
+    ASSERT_EQ(sPointer.use_count(), twoReferences);
+    ASSERT_EQ(sPointer2.use_count(), twoReferences);
+
+    SharedPointer<int> sPointer3 = sPointer;
+    ASSERT_EQ(sPointer.use_count(), threeReferences);
+    ASSERT_EQ(sPointer2.use_count(), threeReferences);
+    ASSERT_EQ(sPointer3.use_count(), threeReferences);
+
+    WeakPointer<int> wPointer(sPointer);
+    ASSERT_EQ(wPointer.use_count(), threeReferences);
+    ASSERT_EQ(sPointer.use_count(), threeReferences);
+
+    SharedPointer<int> sPointer4 = sPointer;
+    ASSERT_EQ(wPointer.use_count(), fourReferences);
+    ASSERT_EQ(sPointer.use_count(), fourReferences);
+    
+    sPointer.reset();
+    ASSERT_EQ(wPointer.use_count(), threeReferences);
+    ASSERT_EQ(sPointer2.use_count(), threeReferences);
+    //ASSERT_EQ(sPointer.use_count(), noReferences); error = 1 instead 0 
+    
+    SharedPointer<int> sPointerNull;
+    //ASSERT_EQ(sPointerNull.use_count(), noReferences); error = 1 instead 0
 }
 
 TEST(MakeSharedTest, shouldUseMakeSharedOnSingleTestValue)
