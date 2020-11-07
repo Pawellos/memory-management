@@ -1,40 +1,82 @@
 #pragma once
 
 #include <atomic>
-#include <cstddef>
+#include <functional>
 
-class ControlBlock {
+template <typename T>
+class ControlBlockBase {
 public:
-    ControlBlock() : sharedRefs_(0), weakRefs_(0){};
-    ControlBlock(const ControlBlock&) = delete;
-    ControlBlock& operator=(const ControlBlock&) = delete;
-    ~ControlBlock(){};
+    virtual ~ControlBlockBase() = default;
 
     size_t getShared();
     size_t getWeak();
 
-    ControlBlock& operator++();
-    ControlBlock& operator--();
+    void increaseWeak();
+    void increaseShared();
+
+    void decreaseWeak();
+    void decreaseShared();
+
+    virtual T* getData() = 0;
 
 private:
-    std::atomic<size_t> sharedRefs_;
-    std::atomic<size_t> weakRefs_;
+    std::atomic<size_t> sharedRefs_{1};
+    std::atomic<size_t> weakRefs_{0};
 };
 
-size_t ControlBlock::getShared() {
-    return sharedRefs_;
+template <typename T>
+class ControlBlock : public ControlBlockBase<T> {
+public:
+    ControlBlock(
+        T* ptr = nullptr,
+        std::function<void(T*)> deleter = [](T* ptrToDelete) { delete ptrToDelete; })
+        : refs_(ptr), deleter_(deleter) {}
+    ~ControlBlock() { deleter_(refs_); }
+
+    T* getData() override { return refs_; }
+
+private:
+    T* refs_;
+    std::function<void(T*)> deleter_;
+};
+
+template <typename T>
+class ControlBlockData : public ControlBlockBase<T> {
+public:
+    template <typename... Args>
+    ControlBlockData(Args&&... args) : data_(std::forward<Args>(args)...) {}
+    T* getData() override { return &data_; }
+
+private:
+    T data_{};
+};
+
+template <typename T>
+size_t ControlBlockBase<T>::getShared() {
+    return sharedRefs_.load();
 }
 
-size_t ControlBlock::getWeak() {
-    return weakRefs_;
+template <typename T>
+size_t ControlBlockBase<T>::getWeak() {
+    return weakRefs_.load();
 }
 
-ControlBlock& ControlBlock::operator--() {
-    --sharedRefs_;
-    return *this;
+template <typename T>
+void ControlBlockBase<T>::increaseWeak() {
+    ++weakRefs_;
 }
 
-ControlBlock& ControlBlock::operator++() {
+template <typename T>
+void ControlBlockBase<T>::increaseShared() {
     ++sharedRefs_;
-    return *this;
+}
+
+template <typename T>
+void ControlBlockBase<T>::decreaseWeak() {
+    --weakRefs_;
+}
+
+template <typename T>
+void ControlBlockBase<T>::decreaseShared() {
+    --sharedRefs_;
 }

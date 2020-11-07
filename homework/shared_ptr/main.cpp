@@ -1,22 +1,18 @@
-#include <iostream>
+#include "MakeShared.hpp"
 #include "SharedPointer.hpp"
+#include "WeakPointer.hpp"
+
+#include <iostream>
+#include <memory>
+#include <utility>
+
+#include <chrono>
+#include <ctime>
+#include <ratio>
+#include <vector>
+
+using namespace std::chrono;
 
 int main() {
-    std::cout << "Shared pointers: \n";
-    SharedPointer<int> ptr2(new int(44));
-    std::cout << *ptr2 << "\n";
-    int* man_ptr = ptr2.get();
-    std::cout << *man_ptr << "\n";
-    std::cout << *ptr2.get() << "\n";
-    std::cout << ptr2.use_count() << "\n";
-    SharedPointer<int> ptr3(ptr2);
-    *ptr3 += 5;
-
-    SharedPointer<int> ptr4(ptr2);
-    std::cout << ptr2.use_count() << "\n";
-
-    std::cout << *ptr3.get() << "\n";
-    std::cout << *ptr2.get() << "\n";
-    std::cout << ptr3.use_count() << "\n";
     return 0;
 }
